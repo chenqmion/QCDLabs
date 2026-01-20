@@ -7,7 +7,7 @@ sys.path.insert(0, '../instrument/')
 from Agilent.instr_N9928A import N9928A
 
 spec_address = "10.0.100.110"
-spec = N9928A(spec_address, port=5025)
+spec = N9928A(spec_address)
 
 f0 = 6.70e9
 

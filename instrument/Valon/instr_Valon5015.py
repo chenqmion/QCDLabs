@@ -1,18 +1,17 @@
 import socket
 import time
+import re
+
+import sys
+sys.path.insert(0, '../instrument/')
 from class_instr import instr
 
 class Valon5015(instr):
-    port = 23
-    time_out = 30
-    buffer_size = 1024
+    def __init__(self, ip_address, port=23, buffer_size=1024, time_out=30, line_ending='\r'):
+        super().__init__("Valon 5015", ip_address, port=port, buffer_size=buffer_size, time_out=time_out, line_ending=line_ending)
 
-    def __init__(self, ip_address, port=port, buffer_size=buffer_size, time_out=time_out):
-        super().__init__("Valon 5015", ip_address, port=port, buffer_size=buffer_size, time_out=time_out)
-        
-        self.line_ending = "\r"
-        
         self.output(False)
+        self._send_command("?")
 
     # settings 
     def frequency(self, freq_hz = None):
@@ -21,14 +20,20 @@ class Valon5015(instr):
             response = self._send_command(command + f" {freq_hz:.3f}")
         else:
             response = self._send_command(command + "?")
+
+            response = re.search(r"F\s([\d\.]+)\s", response).group(1)
+            response = float(response) * 1e6
         return response
 
     def power(self, power_dbm = None):
-        command = "Power"
+        command = "PWR"
         if (power_dbm != None):
             response = self._send_command(command + f" {power_dbm:.3f}")
         else:
             response = self._send_command(command + "?")
+
+            response = re.search(r"PWR\s(-?[\d\.]+);", response).group(1)
+            response = float(response)
         return response
 
     def reference(self, ref_source = None):

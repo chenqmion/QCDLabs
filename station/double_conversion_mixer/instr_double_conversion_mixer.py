@@ -1,27 +1,30 @@
 import sys
+import os
+
 import matplotlib.pyplot as plt
 import numpy as np
 import xarray as xr
 
-sys.path.insert(0, '../../instrument/')
+sys.path.insert(0, '../instrument/')
 from class_instr import instr
 from RS.instr_FSV40 import FSV40
 from Valon.instr_Valon5015 import Valon5015
 
-class DuoMixer(instr):
-    time_out = 3600
-    buffer_size = 65536
+class DuoMixer:
+    time_out = 30
+    buffer_size = 1024
+    name = 'DuoMixer'
 
     def __init__(self, ip_address1, ip_address2, buffer_size=buffer_size, time_out=time_out):
-        super().__init__("N9928A", ip_address1, ip_address2)
-
-        lo1 = Valon5015(ip_address1)
+        lo1 = Valon5015(ip_address1, buffer_size=buffer_size, time_out=time_out)
         lo2 = []
         try:
             for ip2 in ip_address2:
-                lo2.append(Valon5015(ip2))
+                print(ip2)
+                lo2.append(Valon5015(ip2, buffer_size=buffer_size, time_out=time_out))
         except:
-            lo2.append(Valon5015(ip_address2))
+            print(ip_address2)
+            lo2.append(Valon5015(ip_address2, buffer_size=buffer_size, time_out=time_out))
 
         self.lo1 = lo1
         self.lo2 = lo2
@@ -40,7 +43,9 @@ class DuoMixer(instr):
 
     def set_if(self, *, idx=0, frequency=None):
         if not (frequency == None):
-            freq2 = self.lo1.frequency() + np.floor(frequency) + 3
+            print(self.lo1.frequency())
+            freq2 = self.lo1.frequency() + np.floor(frequency) + 3e9
+            self.lo2[idx].frequency(freq2)
 #
 # lo1_address = '10.0.100.27'
 # port = 23

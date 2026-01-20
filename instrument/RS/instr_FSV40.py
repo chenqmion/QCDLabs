@@ -2,14 +2,13 @@ import socket
 import time
 import numpy as np
 import xarray as xr
+
+import sys
+sys.path.insert(0, '../instrument/')
 from class_instr import instr
 
 class FSV40(instr):
-    port = 5025
-    time_out = 3600
-    buffer_size = 65536
-
-    def __init__(self, ip_address, port=port, buffer_size=buffer_size, time_out=time_out):
+    def __init__(self, ip_address, port=5025, buffer_size=65536, time_out=3600, line_ending="\n"):
         super().__init__("FSV 40", ip_address, port=port, buffer_size=buffer_size, time_out=time_out)
         
         self._send_command('*IDN?')
