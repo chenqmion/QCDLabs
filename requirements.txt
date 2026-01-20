@@ -1,0 +1,5 @@
+matplotlib==3.10.8
+nirfsg==1.0.1
+numpy==2.4.1
+pyvisa==1.16.1
+xarray==2025.12.0
