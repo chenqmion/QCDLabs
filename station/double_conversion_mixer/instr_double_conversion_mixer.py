@@ -41,11 +41,13 @@ class DuoMixer:
         if not (power == None):
             self.lo2[idx].power(power)
 
-    def set_if(self, *, idx=0, frequency=None):
+    def set_frequency(self, *, idx=0, frequency=None, if_frequency=None):
         if not (frequency == None):
             print(self.lo1.frequency())
-            freq2 = self.lo1.frequency() + np.floor(frequency) + 3e9
+            freq2 = self.lo1.frequency() + np.floor(frequency) + if_frequency
             self.lo2[idx].frequency(freq2)
+            self.if_frequency = if_frequency
+            self.frequency = freq2
 #
 # lo1_address = '10.0.100.27'
 # port = 23

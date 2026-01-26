@@ -10,6 +10,9 @@ lo1_address = "10.0.100.24"
 lo2_address = ["10.0.100.32"]
 drive = DuoMixer(lo1_address, lo2_address)
 
-drive.set_lo1(frequency=8e9, power=-10)
-drive.set_lo2(idx=0, frequency=12e9, power=-10)
-drive.set_if(idx=0, frequency=3e9)
+drive.set_lo1(frequency=8e9, power=14)
+drive.set_lo2(idx=0, frequency=12e9, power=14)
+drive.set_frequency(idx=0, frequency=6.7e9, if_frequency = 3e9)
+
+drive.lo1.output(1)
+drive.lo2[0].output(1)
