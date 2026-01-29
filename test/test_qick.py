@@ -10,7 +10,7 @@ import xarray as xr
 import os
 import sys
 sys.path.insert(0, '../station/')
-from xilinx_qick.class_drx import drx
+from xilinx_qick.class_drx_v2 import drx
 from xilinx_qick.class_rox import rox
 
 from double_conversion_mixer.instr_double_conversion_mixer import DuoMixer
@@ -20,7 +20,7 @@ lo1_address = "10.0.100.24"
 lo2_address = ["10.0.100.32"]
 drive = DuoMixer(lo1_address, lo2_address)
 
-dr_frequency = 4.3e9
+dr_frequency = 6.5e9
 if_frequency = 3e9
 
 drive.set_lo1(frequency=8e9, power=17)
@@ -43,12 +43,7 @@ class PulseSequence(AveragerProgram):
         cfg = self.cfg
         for dr_name in self.dr_names:
             dr = cfg[dr_name]
-            for waveform in dr.waveforms:
-#                 print('xx', dr.dr_ch,
-#                       dr.frequency_cyl,
-#                       dr.maxv,
-#                       waveform.name)
-
+            for waveform in dr.wave.items:
                 self.set_pulse_registers(ch=dr.dr_ch,
                                          freq=dr.frequency_cyl,
                                          gain=dr.maxv,
@@ -73,6 +68,13 @@ class PulseSequence(AveragerProgram):
                                              phase=val_x.phase_cyl,
                                              style='arb')
 
+                if val_x.rox.length != 0:
+                    self.ro_chns.append(val_x.ro_ch)
+                    self.declare_readout(ch=val_x.ro_ch,
+                                         length=val_x.rox.length_cyl,
+                                         freq=val_x.rox.frequency,
+                                         gen_ch=val_x.dr_ch)
+
             elif val_key[:3] == 'ro_':
 #                 print('x', val_x.ro_ch, val_x.frequency)
                 self.ro_chns.append(val_x.ro_ch)
@@ -83,7 +85,7 @@ class PulseSequence(AveragerProgram):
 
         for dr_name in self.dr_names:
             dr = cfg[dr_name]
-            for waveform in dr.waveforms:
+            for waveform in dr.wave.items:
 #                 print(waveform.name, waveform.i_data, waveform.q_data)
                 self.add_pulse(ch=dr.dr_ch,
                                name=waveform.name,
@@ -150,7 +152,7 @@ def plot_2q(iq_data):
 #%%
 config = {"adc_trig_offset": 0.2,
           "reps": 1,
-          "soft_avgs": 1,
+          "soft_avgs": 50,
           "expts": 1,
           "relax_delay": 1,
           "ddr4": False, # full decimated data
@@ -158,19 +160,22 @@ config = {"adc_trig_offset": 0.2,
          }
 
 dr_qubit = drx(soc=soccfg, dr_ch=0, ro_ch=0, frequency=dr_frequency/1e6, gain=0.5, phase=0, delay=0, sleep=0)
-dr_qubit.add_waveform(name='x1', t_data=[0,0.1,0.2, 0.3, 0.4], s_data=[0,1,2,1,0], idx=-1, interp_order=3)
+dr_qubit.wave.add(name='x1', t_data=[0,0.1,0.2, 0.3, 0.4], s_data=[0,1,2,1,0], idx=-1, interp_order=3)
 # dr_qubit.add_waveform(name='x2', t_data=[0,0.1,0.2, 0.3, 0.4], s_data=[0j,1j,2j,1j,0j], idx=-1, interp_order=3)
+
+dr_qubit.rox.set(frequency=dr_frequency/1e6, length=1, delay=0, sleep=0)
 config['dr_qubit'] = dr_qubit
 
-ro_qubit = rox(soc=soccfg, dr_ch=0, ro_ch=0, frequency=dr_frequency/1e6, length=1, delay=0, sleep=0)
-config['ro_qubit'] = ro_qubit
+# ro_qubit = rox(soc=soccfg, dr_ch=0, ro_ch=0, frequency=dr_frequency/1e6, length=1, delay=0, sleep=0)
+# config['ro_qubit'] = ro_qubit
 
-dr_readout = drx(soc=soccfg, dr_ch=1, ro_ch=1, frequency=if_frequency/1e6, gain=0.5, phase=0, delay=0, sleep=0)
+dr_readout = drx(soc=soccfg, dr_ch=1, frequency=if_frequency/1e6, gain=0.5, phase=0, delay=0, sleep=0)
 # dr_readout.add_waveform(name='y1', t_data=[0,0.1,0.2,0.3,0.4], s_data=[0j,1j,2j,1j,0j], idx=-1, interp_order=3)
-dr_readout.add_waveform(name='y2', t_data=[0,0.1,0.2,0.3,0.4], s_data=[0,1,2,1,0], idx=-1, interp_order=3)
+dr_readout.wave.add(name='y2', t_data=[0,0.1,0.2,0.3,0.4], s_data=[0,1,2,1,0], idx=-1, interp_order=3)
+# dr_readout.rox.set(frequency=if_frequency/1e6, length=1, delay=0, sleep=0)
 config['dr_readout'] = dr_readout
 
-ro_readout = rox(soc=soccfg, dr_ch=1, ro_ch=1, frequency=if_frequency/1e6, length=1, delay=0, sleep=0)
+ro_readout = rox(soc=soccfg, ro_ch=1, frequency=if_frequency/1e6, length=1, delay=0, sleep=0)
 config['ro_readout'] = ro_readout
 
 prog = PulseSequence(soccfg, config)
@@ -187,48 +192,49 @@ with xr.open_zarr("test1.zarr") as f:
 
 plot_2q(iq_data)
 
-#%% phase correction
-idx0 = np.argmax(np.abs(iq_data.sel(rox=0, quadrature='I').data + 1j * iq_data.sel(rox=0, quadrature='Q').data))
-phi0 = np.angle(iq_data.sel(rox=0, quadrature='I').data[idx0]+1j*iq_data.sel(rox=0, quadrature='Q').data[idx0]) * 180/np.pi
-
-idx1 = np.argmax(np.abs(iq_data.sel(rox=1, quadrature='I').data + 1j * iq_data.sel(rox=1, quadrature='Q').data))
-phi1 = np.angle(iq_data.sel(rox=1, quadrature='I').data[idx1]+1j*iq_data.sel(rox=1, quadrature='Q').data[idx1]) * 180/np.pi
-
-config = {"adc_trig_offset": 0.2,
-          "reps": 1,
-          "soft_avgs": 1,
-          "expts": 1,
-          "relax_delay": 1,
-          "ddr4": False, # full decimated data
-          "mr": False # dds data
-         }
-
-dr_qubit = drx(soc=soccfg, dr_ch=0, ro_ch=0, frequency=dr_frequency/1e6, gain=0.5, phase=phi0, delay=0, sleep=0)
-dr_qubit.add_waveform(name='x1', t_data=[0,0.1,0.2, 0.3, 0.4], s_data=[0,1,2,1,0], idx=-1, interp_order=3)
-dr_qubit.add_waveform(name='x2', t_data=[0,0.1,0.2, 0.3, 0.4], s_data=[0j,1j,2j,1j,0j], idx=-1, interp_order=3)
-config['dr_qubit'] = dr_qubit
-
-ro_qubit = rox(soc=soccfg, dr_ch=0, ro_ch=0, frequency=dr_frequency/1e6, length=1, delay=0, sleep=0)
-config['ro_qubit'] = ro_qubit
-
-dr_readout = drx(soc=soccfg, dr_ch=1, ro_ch=1, frequency=if_frequency/1e6, gain=0.5, phase=phi1, delay=0, sleep=0)
-dr_readout.add_waveform(name='y1', t_data=[0,0.1,0.2,0.3,0.4], s_data=[0j,1j,2j,1j,0j], idx=-1, interp_order=3)
-dr_readout.add_waveform(name='y2', t_data=[0,0.1,0.2,0.3,0.4], s_data=[0,1,2,1,0], idx=-1, interp_order=3)
-config['dr_readout'] = dr_readout
-
-ro_readout = rox(soc=soccfg, dr_ch=1, ro_ch=1, frequency=if_frequency/1e6, length=1, delay=0, sleep=0)
-config['ro_readout'] = ro_readout
-
-prog = PulseSequence(soccfg, config)
-soc.reset_gens()  # clear any DC or periodic values on generators
-iq_data = prog.acquire_decimated(soc, load_pulses=True, progress=False)
-iq_data.to_zarr('test2.zarr', mode='w')
-
-drive.lo1.output(0)
-drive.lo2[0].output(0)
-
-#%% plot
-with xr.open_zarr("test2.zarr") as f:
-    iq_data = f['IQ decimated']
-
-plot_2q(iq_data)
+# #%% phase correction
+# idx0 = np.argmax(np.abs(iq_data.sel(rox=0, quadrature='I').data + 1j * iq_data.sel(rox=0, quadrature='Q').data))
+# phi0 = np.angle(iq_data.sel(rox=0, quadrature='I').data[idx0]+1j*iq_data.sel(rox=0, quadrature='Q').data[idx0]) * 180/np.pi
+#
+# idx1 = np.argmax(np.abs(iq_data.sel(rox=1, quadrature='I').data + 1j * iq_data.sel(rox=1, quadrature='Q').data))
+# phi1 = np.angle(iq_data.sel(rox=1, quadrature='I').data[idx1]+1j*iq_data.sel(rox=1, quadrature='Q').data[idx1]) * 180/np.pi
+#
+# config = {"adc_trig_offset": 0.2,
+#           "reps": 1,
+#           "soft_avgs": 1,
+#           "expts": 1,
+#           "relax_delay": 1,
+#           "ddr4": False, # full decimated data
+#           "mr": False # dds data
+#          }
+#
+# dr_qubit = drx(soc=soccfg, dr_ch=0, ro_ch=0, frequency=dr_frequency/1e6, gain=0.5, phase=phi0, delay=0, sleep=0)
+# dr_qubit.add_waveform(name='x1', t_data=[0,0.05,0.1, 0.15, 0.2], s_data=[0,1,2,1,0], idx=-1, interp_order=3)
+# dr_qubit.add_waveform(name='x2', t_data=[0,0.05,0.1, 0.15, 0.2], s_data=[0j,1j,2j,1j,0j], idx=-1, interp_order=3)
+# config['dr_qubit'] = dr_qubit
+#
+# ro_qubit = rox(soc=soccfg, dr_ch=0, ro_ch=0, frequency=dr_frequency/1e6, length=1, delay=0, sleep=0)
+# config['ro_qubit'] = ro_qubit
+#
+# dr_readout = drx(soc=soccfg, dr_ch=1, ro_ch=1, frequency=if_frequency/1e6, gain=0.5, phase=phi1, delay=0, sleep=0)
+# dr_readout.add_waveform(name='y1', t_data=[0,0.05,0.1, 0.15, 0.2], s_data=[0j,1j,2j,1j,0j], idx=-1, interp_order=3)
+# dr_readout.add_sleep(name='s1', t=0.2, idx=-1)
+# dr_readout.add_waveform(name='y2', t_data=[0,0.05,0.1, 0.15, 0.2], s_data=[0,1,2,1,0], idx=-1, interp_order=3)
+# config['dr_readout'] = dr_readout
+#
+# ro_readout = rox(soc=soccfg, dr_ch=1, ro_ch=1, frequency=if_frequency/1e6, length=1, delay=0, sleep=0)
+# config['ro_readout'] = ro_readout
+#
+# prog = PulseSequence(soccfg, config)
+# soc.reset_gens()  # clear any DC or periodic values on generators
+# iq_data = prog.acquire_decimated(soc, load_pulses=True, progress=False)
+# iq_data.to_zarr('test2.zarr', mode='w')
+#
+# drive.lo1.output(0)
+# drive.lo2[0].output(0)
+#
+# #%% plot
+# with xr.open_zarr("test2.zarr") as f:
+#     iq_data = f['IQ decimated']
+#
+# plot_2q(iq_data)

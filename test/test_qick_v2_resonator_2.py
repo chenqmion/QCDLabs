@@ -15,6 +15,7 @@ sys.path.insert(0, '../station/')
 from xilinx_qick.class_drx_v2 import drx
 from xilinx_qick.class_rox import rox
 from xilinx_qick.class_sweep import sweep
+import time
 
 from helper_plot import *
 
@@ -40,7 +41,7 @@ from qick.pyro import make_proxy
 soc, soccfg = make_proxy(ns_host="10.0.100.21", ns_port=8888, proxy_name="rfsoc4x2_1")
 print(soccfg)
 
-class PulseSequence(NDAveragerProgram):
+class PulseSequence(AveragerProgram):
     def initialize_phases(self):
         self.phase_ref_q1 = 0
 
@@ -125,16 +126,12 @@ class PulseSequence(NDAveragerProgram):
     #%% data
     def acquire(self, soc, load_pulses=True, progress=True):
         cfg = self.cfg
-        expt_pts, avg_di, avg_dq = super().acquire(soc, load_pulses=True, progress=False)
+        i_data, q_data = super().acquire(soc, load_pulses=load_pulses, progress=progress)
 
-        _coords = [np.array(['I', 'Q'], dtype=str),  self.ro_chns, 1 + np.arange(0, cfg['reps'], 1)]
+        _coords = [np.array(['I', 'Q'], dtype=str),  self.ro_chns, [1]]
         _dims = ["quadrature", "rox", "reps"]
 
-        for _num, val_key in enumerate(self.sw_names[::-1]):
-            _coords.append(np.unique(expt_pts[::-1][_num]))
-            _dims.append(val_key[3:])
-
-        res_data = xr.DataArray([avg_di, avg_dq],
+        res_data = xr.DataArray([i_data, q_data],
                                 coords=_coords,
                                 dims=_dims,
                                 name="IQ accumulated")
@@ -153,7 +150,7 @@ class PulseSequence(NDAveragerProgram):
 
 #%%
 config = {"adc_trig_offset": 0.2,
-          "reps": 1,
+          "reps": 1000,
           "soft_avgs": 1,
           "expts": 1,
           "relax_delay": 1,
@@ -161,53 +158,93 @@ config = {"adc_trig_offset": 0.2,
           "mr": False # dds data
          }
 
-dr_qubit = drx(soc=soccfg, dr_ch=0, ro_ch=0, frequency=dr_frequency/1e6, gain=0.5, phase=0, delay=0, sleep=0)
-dr_qubit.wave.add(name='x1', t_data=[0,0.1,0.2, 0.3, 0.4], s_data=[0,1,2,1,0], idx=-1, interp_order=3)
-dr_qubit.rox.set(frequency=dr_frequency/1e6, length=1, delay=0, sleep=0)
-config['dr_qubit'] = dr_qubit
+dr_freq_list = np.arange(6.75, 6.785+1e-6, 0.00025) * 1e9
 
-dr_readout = drx(soc=soccfg, dr_ch=1, ro_ch=1, frequency=if_frequency/1e6, gain=0.5, phase=0, delay=0, sleep=0)
-dr_readout.wave.add(name='x2', t_data=[0,0.1,0.2,0.3,0.4], s_data=[0,1,2,1,0], idx=-1, interp_order=3)
-dr_readout.rox.set(frequency=if_frequency/1e6, length=1, delay=0, sleep=0)
-config['dr_readout'] = dr_readout
+dr_frequency = 6.77e9
+drive.set_frequency(idx=0, frequency=dr_frequency, if_frequency=if_frequency)
 
-# #%% pulse
-# prog = PulseSequence(soccfg, config)
-# soc.reset_gens()  # clear any DC or periodic values on generators
-# iq_data = prog.acquire_decimated(soc, load_pulses=True, progress=False)
-# iq_data.to_zarr('test1.zarr', mode='w')
-#
-# # drive.lo1.output(0)
-# # drive.lo2[0].output(0)
-#
-# #%% plot
-# with xr.open_zarr("test1.zarr") as f:
-#     iq_data = f['IQ decimated']
-#
-# plot_decimated(iq_data)
+iq_mat = []
+for dr_frequency in dr_freq_list:
+    # drive.set_frequency(idx=0, frequency=dr_frequency, if_frequency=if_frequency)
+    if_frequency = 3e9 -(dr_frequency - 6.77e9)
+    print(dr_frequency/1e9)
 
-#%% sweep
-sw_gain = sweep()
-sw_gain.add(dr_qubit, 'gain', 0.1, 1, 10)
-sw_gain.add(dr_readout, 'gain', 0.1, 1, 10)
-config['sw_gain'] = sw_gain
+    dr_readout = drx(soc=soccfg, dr_ch=1, ro_ch=1, frequency=if_frequency / 1e6, gain=0.5, phase=0, delay=0, sleep=0)
+    dr_readout.wave.add(name='x2', t_data=[0, 0.25, 0.5, 0.75, 1.0], s_data=[0, 1, 2, 1, 0], idx=-1, interp_order=3)
+    dr_readout.rox.set(frequency=if_frequency / 1e6, length=1, delay=0, sleep=0)
+    config['dr_readout'] = dr_readout
 
-sw_phase = sweep()
-sw_phase.add(dr_qubit, 'phase', 0, 350, 36)
-sw_phase.add(dr_readout, 'phase', 0, 350, 36)
-config['sw_phase'] = sw_phase
+    prog = PulseSequence(soccfg, config)
+    soc.reset_gens()  # clear any DC or periodic values on generators
+    iq_data = prog.acquire(soc, load_pulses=True, progress=True)
+    iq_mat.append(iq_data)
+
+iq_mat = xr.concat(iq_mat, dim=xr.DataArray(dr_freq_list, name='frequency', dims='frequency'))
+iq_mat = iq_mat.transpose(..., "frequency")
+
+iq_mat.to_zarr('test_1.zarr', mode='w')
+
+# drive.lo1.output(0)
+# drive.lo2[0].output(0)
+
+with xr.open_zarr("test_1.zarr") as f:
+    iq_mat = f['IQ accumulated']
+
+plt.figure()
+plt.plot(dr_freq_list/1e9, 20*np.log10(np.abs(iq_mat.sel(rox=1, quadrature='I', reps=1)+1j*(iq_mat.sel(rox=1, quadrature='Q', reps=1)))), 'o-')
+plt.xlim(6.75, 6.785)
+plt.show()
 
 #%%
-prog = PulseSequence(soccfg, config)
-soc.reset_gens()  # clear any DC or periodic values on generators
-iq_data = prog.acquire(soc, load_pulses=True, progress=False)
-iq_data.to_zarr('test_v2.zarr', mode='w')
+dr_frequency = 6.77e9
+if_frequency = 3e9
+
+drive.set_lo1(frequency=8e9, power=17)
+drive.set_frequency(idx=0, frequency=dr_frequency, if_frequency = if_frequency)
+drive.set_lo2(idx=0, power=20)
+
+config = {"adc_trig_offset": 0.2,
+          "reps": 1000,
+          "soft_avgs": 1,
+          "expts": 1,
+          "relax_delay": 1,
+          "ddr4": False, # full decimated data
+          "mr": False # dds data
+         }
+
+dr_readout = drx(soc=soccfg, dr_ch=1, ro_ch=1, frequency=if_frequency / 1e6, gain=0.5, phase=0, delay=0, sleep=0)
+dr_readout.wave.add(name='x2', t_data=[0, 0.25, 0.5, 0.75, 1.0], s_data=[0, 1, 2, 1, 0], idx=-1, interp_order=3)
+dr_readout.rox.set(frequency=if_frequency / 1e6, length=1, delay=0, sleep=0)
+config['dr_readout'] = dr_readout
+
+dr_freq_list = np.arange(6.75, 6.785+1e-6, 0.00025) * 1e9
+
+iq_mat2 = []
+for dr_frequency in dr_freq_list:
+    print(dr_frequency / 1e9)
+
+    drive.set_frequency(idx=0, frequency=dr_frequency, if_frequency=if_frequency)
+    time.sleep(0.1)
+    # if_frequency = 3e9 -(dr_frequency - 6.77e9)
+
+    prog = PulseSequence(soccfg, config)
+    soc.reset_gens()  # clear any DC or periodic values on generators
+    iq_data = prog.acquire(soc, load_pulses=True, progress=True)
+    iq_mat2.append(iq_data)
+
+iq_mat2 = xr.concat(iq_mat2, dim=xr.DataArray(dr_freq_list, name='frequency', dims='frequency'))
+iq_mat2 = iq_mat2.transpose(..., "frequency")
+
+iq_mat2.to_zarr('test_2.zarr', mode='w')
 
 drive.lo1.output(0)
 drive.lo2[0].output(0)
 
-#%% plot
-with xr.open_zarr("test_v2.zarr") as f:
-    iq_data = f['IQ accumulated']
+with xr.open_zarr("test_2.zarr") as f:
+    iq_mat2 = f['IQ accumulated']
 
-plot_sweep(iq_data)
+plt.figure()
+plt.plot(dr_freq_list/1e9, 20*np.log10(np.abs(iq_mat2.sel(rox=1, quadrature='I', reps=1)+1j*(iq_mat2.sel(rox=1, quadrature='Q', reps=1)))), 'o-')
+plt.xlim(6.75, 6.785)
+plt.show()
+

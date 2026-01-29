@@ -1,6 +1,7 @@
 import socket
 import time
 import re
+import numpy as np
 
 import sys
 sys.path.insert(0, '../instrument/')
@@ -17,7 +18,7 @@ class Valon5015(instr):
     def frequency(self, freq_hz = None):
         command = "FREQ"
         if (freq_hz != None):
-            response = self._send_command(command + f" {freq_hz:.3f}")
+            response = self._send_command(command + f" {np.round(freq_hz).astype(int):1d}")
         else:
             response = self._send_command(command + "?")
 

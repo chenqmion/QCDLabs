@@ -15,7 +15,6 @@ class rox:
     delay: float = 0.0
     sleep: float = 0.0
     length: float = 0
-    waveforms: list = field(default_factory=list)
 
     @property
     def delay_cyl(self):
@@ -28,3 +27,12 @@ class rox:
     @property
     def length_cyl(self):
         return np.round(self.soc.us2cycles(self.length, ro_ch=self.ro_ch)).astype(int)
+
+    def set(self, ro_ch=None, frequency=None, dr_ch=None, delay=None, sleep=None, length=None):
+        if ro_ch != None: self.ro_ch = ro_ch
+        if frequency != None: self.frequency = frequency
+        if dr_ch != None: self.dr_ch = dr_ch
+        if delay != None: self.delay = delay
+        if sleep != None: self.sleep = sleep
+        if length != None: self.length = length
+

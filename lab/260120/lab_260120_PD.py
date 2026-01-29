@@ -39,15 +39,14 @@ import pickle
 # # res.to_zarr('S21_PD.zarr')
 
 #%%
-# with xr.open_zarr("S21_PD.zarr") as f:
-#     res = f['S21']
-
+with xr.open_zarr("S21_PD.zarr") as f:
+    res = f['S21']
 
 # with open('S21_PD.pkl', 'wb') as f:
 #     pickle.dump(res, f, protocol=pickle.HIGHEST_PROTOCOL)
 
-with open("S21_PD.pkl", "rb") as f:
-    res = pickle.load(f)
+# with open("S21_PD.pkl", "rb") as f:
+#     res = pickle.load(f)
 
 plt.figure()
 plt.plot(res.sel(ctrl='cable').frequency/1e9, 20*np.log10(np.abs(res.sel(ctrl='cable').data)))
