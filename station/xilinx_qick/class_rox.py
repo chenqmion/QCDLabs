@@ -12,8 +12,8 @@ class rox:
     frequency: float
 
     dr_ch: int = None
-    delay: float = 0.0
-    sleep: float = 0.0
+    delay: float = 0.1
+    sleep: float = 1.0
     length: float = 0
 
     @property

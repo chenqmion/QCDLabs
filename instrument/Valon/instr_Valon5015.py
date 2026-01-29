@@ -18,7 +18,8 @@ class Valon5015(instr):
     def frequency(self, freq_hz = None):
         command = "FREQ"
         if (freq_hz != None):
-            response = self._send_command(command + f" {np.round(freq_hz).astype(int):1d}")
+            print('hahaha', freq_hz)
+            response = self._send_command(command + f" {int(np.round(freq_hz)):1d}")
         else:
             response = self._send_command(command + "?")
 

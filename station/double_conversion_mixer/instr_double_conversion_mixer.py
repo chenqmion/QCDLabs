@@ -5,7 +5,12 @@ import matplotlib.pyplot as plt
 import numpy as np
 import xarray as xr
 
-sys.path.insert(0, '../instrument/')
+station_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+instrument_path = os.path.join(os.path.dirname(station_path), "instrument")
+
+sys.path.insert(0, station_path)
+sys.path.insert(0, instrument_path)
+
 from class_instr import instr
 from RS.instr_FSV40 import FSV40
 from Valon.instr_Valon5015 import Valon5015

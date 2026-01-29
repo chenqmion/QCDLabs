@@ -3,7 +3,12 @@ import xarray as xr
 from qick import *
 from qick.averager_program import AveragerProgram, QickSweep, merge_sweeps
 
-class Prog(AveragerProgram):
+import numpy as np
+import xarray as xr
+from qick import *
+from qick.averager_program import AveragerProgram, QickSweep, merge_sweeps
+
+class NDProg(NDAveragerProgram):
     def initialize_phases(self):
         self.phase_ref_q1 = 0
 
@@ -24,6 +29,7 @@ class Prog(AveragerProgram):
     def initialize(self):
         cfg = self.cfg
         self.dr_names = []
+        self.ro_names = []
         self.ro_chns = []
         self.sw_names = []
         for val_key, val_x in cfg.items():
@@ -43,6 +49,7 @@ class Prog(AveragerProgram):
                                    qdata=waveform.q_data)
 
                 if val_x.rox.length != 0:
+                    self.ro_names.append(val_key)
                     self.ro_chns.append(val_x.ro_ch)
                     self.declare_readout(ch=val_x.ro_ch,
                                          length=val_x.rox.length_cyl,
@@ -50,16 +57,16 @@ class Prog(AveragerProgram):
                                          gen_ch=val_x.dr_ch)
 
             elif val_key[:3] == 'ro_':
-                #                 print('x', val_x.ro_ch, val_x.frequency)
+                self.ro_names.append(val_key)
                 self.ro_chns.append(val_x.ro_ch)
                 self.declare_readout(ch=val_x.ro_ch,
                                      length=val_x.length_cyl,
                                      freq=val_x.frequency,
                                      gen_ch=val_x.dr_ch)
 
+
             elif val_key[:3] == 'sw_':
                 self.sw_names.append(val_key)
-
                 sws = []
                 for val_sw in val_x.items:
                     var_name = 'sw_' + str(val_sw.dr_ch) + '_' + val_sw.var
@@ -68,9 +75,9 @@ class Prog(AveragerProgram):
                                          val_sw.start, val_sw.stop, val_sw.expts))
                 self.add_sweep(merge_sweeps(sws))
 
-        self.trigger(ddr4=cfg['ddr4'],
-                     mr=cfg['mr'],
-                     adc_trig_offset=self.us2cycles(self.cfg["adc_trig_offset"]))
+        # self.trigger(ddr4=cfg['ddr4'],
+        #              mr=cfg['mr'],
+        #              adc_trig_offset=self.us2cycles(self.cfg["adc_trig_offset"]))
 
         self.synci(1000)  # give processor some time to configure pulses
 
@@ -78,35 +85,41 @@ class Prog(AveragerProgram):
         cfg = self.cfg
         self.trigger(adcs=self.ro_chns,
                      pins=[0],
-                     adc_trig_offset=self.us2cycles(self.cfg["adc_trig_offset"]))
+                     adc_trig_offset=cfg[self.ro_names[0]].delay_cyl)
 
         self.initialize_phases()
         self.play_seq()
         self.wait_all()
-        self.sync_all(self.us2cycles(self.cfg["relax_delay"]))
+        self.sync_all(cfg[self.ro_names[0]].sleep_cyl)  # need fix!!!
 
     # %% data
     def acquire(self, soc, load_pulses=True, progress=True):
         cfg = self.cfg
-        i_data, q_data = super().acquire(soc, load_pulses=load_pulses, progress=progress)
+        expt_pts, i_data, q_data = super().acquire(soc, load_pulses=load_pulses, progress=progress)
+        _coords = [self.ro_chns, [1]]
+        _dims = ["rox", "reps"]
 
-        _coords = [np.array(['I', 'Q'], dtype=str), self.ro_chns, [1]]
-        _dims = ["quadrature", "rox", "reps"]
+        for _num, val_key in enumerate(self.sw_names[::-1]):
+            _coords.append(np.unique(expt_pts[::-1][_num]))
+            _dims.append(val_key[3:])
 
-        res_data = xr.DataArray([i_data, q_data],
+        res_data = xr.DataArray(np.array(i_data) + 1j*np.array(q_data),
                                 coords=_coords,
                                 dims=_dims,
                                 name="IQ accumulated")
+
         return res_data
 
     def acquire_decimated(self, soc, load_pulses=True, progress=True):
         cfg = self.cfg
         iq_list = super().acquire_decimated(soc, progress=progress)
-        iq_dims = np.shape(iq_list)
-        res_data = xr.DataArray(iq_list,
-                                coords=[np.arange(0, len(self.ro_chns), 1), np.arange(0, iq_dims[1], 1),
-                                        np.array(['I', 'Q'])],
-                                dims=["rox", "ticks", "quadrature"],
+        iq_list = np.transpose(iq_list, (3,0,1,2))
+        print('hahaha', np.shape(iq_list[0] + 1j * iq_list[1]))
+        res_data = xr.DataArray(iq_list[0] + 1j * iq_list[1],
+                                coords=[self.ro_chns,
+                                        np.arange(0, np.shape(iq_list)[-2], 1),
+                                        np.arange(0, np.shape(iq_list)[-1], 1)],
+                                dims=["rox", "params", "ticks"],
                                 name="IQ decimated")
 
         return res_data
