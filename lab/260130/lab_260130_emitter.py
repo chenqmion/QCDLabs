@@ -10,53 +10,53 @@ sys.path.insert(0, '../../instrument/')
 from Valon.instr_Valon5015 import Valon5015
 from Agilent.instr_N9928A import N9928A
 
-#%%
-rf_address = "10.0.100.31"
-rf = Valon5015(rf_address)
-
-rf.frequency(8.428e9)
-rf.power(-30)
-rf.output(1)
-
-#%%
-spec_address = "10.0.100.110"
-spec = N9928A(spec_address)
-
-f0 = 0.48e9
-f1 = 0.55e9
-
-spec.start_frequency(f0)
-spec.stop_frequency(f1)
-spec.if_frequency(1e3)
-spec.average(1, mode='sweep')
-spec.points(1001)
-spec.power(-30)
-
-res_data0 = spec.get_trace()
-
-plt.figure()
-plt.plot(res_data0.frequency, 20*np.log10(np.abs(res_data0.data)))
-plt.show()
-
-#%% cable
-rf_power_list = np.arange(-30, 0+1e-6, 5)
-rf_freq_list = np.arange(8.31e9, 8.55e9+1e-6, 10e6)
-
-res_mat2 = []
-for rf_power in tqdm(rf_power_list):
-    res_mat = []
-    for rf_freq in rf_freq_list:
-        rf.frequency(rf_freq)
-        rf.power(rf_power)
-        res_data = spec.get_trace()
-        res_mat.append(res_data)
-
-    res_mat = xr.concat(res_mat, dim=xr.DataArray(rf_freq_list, name='rf_frequency', dims='rf_frequency'))
-    res_mat2.append(res_mat)
-res_mat2 = xr.concat(res_mat2, dim=xr.DataArray(rf_power_list, name='rf_power', dims='rf_power'))
-
-rf.output(0)
-res_mat2.to_zarr('test_1.zarr', mode='w')
+# #%%
+# rf_address = "10.0.100.31"
+# rf = Valon5015(rf_address)
+#
+# rf.frequency(8.428e9)
+# rf.power(-30)
+# rf.output(1)
+#
+# #%%
+# spec_address = "10.0.100.110"
+# spec = N9928A(spec_address)
+#
+# f0 = 0.48e9
+# f1 = 0.55e9
+#
+# spec.start_frequency(f0)
+# spec.stop_frequency(f1)
+# spec.if_frequency(1e3)
+# spec.average(1, mode='sweep')
+# spec.points(1001)
+# spec.power(-30)
+#
+# res_data0 = spec.get_trace()
+#
+# plt.figure()
+# plt.plot(res_data0.frequency, 20*np.log10(np.abs(res_data0.data)))
+# plt.show()
+#
+# #%% cable
+# rf_power_list = np.arange(-30, 0+1e-6, 5)
+# rf_freq_list = np.arange(8.31e9, 8.55e9+1e-6, 10e6)
+#
+# res_mat2 = []
+# for rf_power in tqdm(rf_power_list):
+#     res_mat = []
+#     for rf_freq in rf_freq_list:
+#         rf.frequency(rf_freq)
+#         rf.power(rf_power)
+#         res_data = spec.get_trace()
+#         res_mat.append(res_data)
+#
+#     res_mat = xr.concat(res_mat, dim=xr.DataArray(rf_freq_list, name='rf_frequency', dims='rf_frequency'))
+#     res_mat2.append(res_mat)
+# res_mat2 = xr.concat(res_mat2, dim=xr.DataArray(rf_power_list, name='rf_power', dims='rf_power'))
+#
+# rf.output(0)
+# res_mat2.to_zarr('test_1.zarr', mode='w')
 
 with xr.open_zarr("test_1.zarr") as f:
     res_mat = f['S21']

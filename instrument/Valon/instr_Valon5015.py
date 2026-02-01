@@ -11,6 +11,9 @@ class Valon5015(instr):
     def __init__(self, ip_address, port=23, buffer_size=1024, time_out=30, line_ending='\r'):
         super().__init__("Valon 5015", ip_address, port=port, buffer_size=buffer_size, time_out=time_out, line_ending=line_ending)
 
+        self._frequency = None
+        self._power = None
+
         self.output(False)
         self._send_command("?")
 
@@ -18,25 +21,26 @@ class Valon5015(instr):
     def frequency(self, freq_hz = None):
         command = "FREQ"
         if (freq_hz != None):
-            print('hahaha', freq_hz)
             response = self._send_command(command + f" {int(np.round(freq_hz)):1d}")
+            self._frequency = freq_hz
         else:
-            response = self._send_command(command + "?")
-
-            response = re.search(r"F\s([\d\.]+)\s", response).group(1)
-            response = float(response) * 1e6
-        return response
+            if self._frequency == None:
+                response = self._send_command(command + "?")
+                response = re.search(r"F\s([\d\.]+)\s", response).group(1)
+                self._frequency = float(response) * 1e6
+            return self._frequency
 
     def power(self, power_dbm = None):
         command = "PWR"
         if (power_dbm != None):
-            response = self._send_command(command + f" {power_dbm:.3f}")
+            self._send_command(command + f" {power_dbm:.3f}")
+            self._power = power_dbm
         else:
-            response = self._send_command(command + "?")
-
-            response = re.search(r"PWR\s(-?[\d\.]+);", response).group(1)
-            response = float(response)
-        return response
+            if self._power == None:
+                response = self._send_command(command + "?")
+                response = re.search(r"PWR\s(-?[\d\.]+);", response).group(1)
+                self._power = float(response)
+            return self._power
 
     def reference(self, ref_source = None):
         if ref_source == 'EXT':

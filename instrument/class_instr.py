@@ -44,7 +44,7 @@ class instr:
 
         try:
             self._connection.sendall(full_command)
-            print(f"Sent: {full_command}")
+            # print(f"Sent: {full_command}")
 
             time.sleep(0.05)  # Give the device a moment to process and respond
 

@@ -12,12 +12,12 @@ import xarray as xr
 import os
 import sys
 sys.path.insert(0, '../station/')
-from xilinx_qick.class_drx_v2 import drx
-from xilinx_qick.class_rox import rox
-from xilinx_qick.class_sweep import sweep
+# from xilinx_qick.class_drx import drx
+# from xilinx_qick.class_rox import rox
+# from xilinx_qick.class_sweep import sweep
 import time
 
-from helper_plot import *
+# from helper_plot import *
 
 from double_conversion_mixer.instr_double_conversion_mixer import DuoMixer
 
@@ -26,8 +26,8 @@ lo1_address = "10.0.100.24"
 lo2_address = ["10.0.100.32"]
 drive = DuoMixer(lo1_address, lo2_address)
 
-dr_frequency = 6.5e9
-if_frequency = 3.0e9
+dr_frequency = 7e9
+if_frequency = 3e9
 
 drive.set_lo1(frequency=8e9, power=17)
 drive.set_frequency(idx=0, frequency=dr_frequency, if_frequency = if_frequency)

@@ -33,7 +33,7 @@ drive.lo2[0].output(1)
 
 #%% rfsoc
 xilinx_1 = XilinxProg(ip_address="10.0.100.21", mode='AveragerProgram')
-xilinx_1.reps = 100
+xilinx_1.reps = 1000
 
 dr_ch = 1
 ro_ch = 1
@@ -68,6 +68,6 @@ with xr.open_zarr("test_1.zarr") as f:
     iq_mat = f['IQ accumulated']
 
 plt.figure()
-plt.plot(dr_freq_list/1e9, 20*np.log10(np.abs(iq_mat.sel(rox=1, reps=1))), 'o-')
+plt.plot(dr_freq_list/1e9, 20*np.log10(np.abs(iq_mat.sel(rox=1, reps=1))), '.-')
 plt.xlim(6.75, 6.785)
 plt.show()

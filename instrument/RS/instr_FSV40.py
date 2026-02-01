@@ -43,6 +43,14 @@ class FSV40(instr):
             response = self._send_command(command + "?")
         return response
 
+    def video_frequency(self, freq_hz = None):
+        command = "BAND:VID"
+        if (freq_hz != None):
+            response = self._send_command(command + f" {freq_hz:.3f} Hz")
+        else:
+            response = self._send_command(command + "?")
+        return response
+
     def start_frequency(self, freq_hz = None):
         command = "SENS:FREQ:STARt"
         if (freq_hz != None):
@@ -55,6 +63,14 @@ class FSV40(instr):
         command = "SENS:FREQ:STOP"
         if (freq_hz != None):
             response = self._send_command(command + f" {freq_hz:.3f} Hz")
+        else:
+            response = self._send_command(command + "?")
+        return response
+
+    def points(self, n_p=None):
+        command = "SENS:SWE:POIN"
+        if (n_p != None):
+            response = self._send_command(command + f" {n_p:1d}")
         else:
             response = self._send_command(command + "?")
         return response
