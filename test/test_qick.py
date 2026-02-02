@@ -9,7 +9,7 @@ import xarray as xr
 
 import os
 import sys
-sys.path.insert(0, '../station/')
+sys.path.insert(0, '../pattern/')
 from xilinx_qick.class_drx_v2 import drx
 from xilinx_qick.class_rox import rox
 

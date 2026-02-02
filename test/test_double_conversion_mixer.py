@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import xarray as xr
 
-sys.path.insert(0, '../station/')
+sys.path.insert(0, '../pattern/')
 from double_conversion_mixer.instr_double_conversion_mixer import DuoMixer
 
 lo1_address = "10.0.100.24"

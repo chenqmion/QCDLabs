@@ -8,7 +8,7 @@ sys.path.insert(0, '../../instrument/')
 from RS.instr_FSV40 import FSV40
 from Valon.instr_Valon5015 import Valon5015
 
-sys.path.insert(0, '../../station/')
+sys.path.insert(0, '../../pattern/')
 from double_conversion_mixer.instr_double_conversion_mixer import DuoMixer
 
 #%%

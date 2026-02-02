@@ -9,7 +9,7 @@ import time
 
 import os
 import sys
-sys.path.insert(0, '../../station/')
+sys.path.insert(0, '../../pattern/')
 from xilinx_qick.class_drx import drx
 from xilinx_qick.class_rox import rox
 from xilinx_qick.class_sweep import sweep
