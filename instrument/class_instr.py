@@ -5,7 +5,6 @@ import numpy as np
 
 class instr:
 
-
     def __init__(self, name: str, ip_address: str, port=5025, buffer_size=1024, time_out=10, line_ending="\n"):
         self.name = name
         self.ip_address = ip_address

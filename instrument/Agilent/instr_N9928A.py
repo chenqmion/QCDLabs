@@ -15,6 +15,15 @@ class N9928A(instr):
     def __init__(self, ip_address, port=port, buffer_size=buffer_size, time_out=time_out):
         super().__init__("N9928A", ip_address, port, buffer_size, time_out)
 
+        self._start_frequency = None
+        self._stop_frequency = None
+        self._if_frequency = None
+        self._power = None
+        self._points = None
+        self._average = None
+        self._mode = None
+        self._reference = self.reference(force_read=True)
+
         self._send_command('*IDN?')
         self._send_command('*CLS')
         self._send_command('*RST')
@@ -22,74 +31,108 @@ class N9928A(instr):
         self._send_command('INST:SEL "NA"')
         self._send_command('CALC:PAR1:DEF S21')
 
-    # settings
-    def power(self, P_dbm=None):
-        command = "SOUR:POW"
-        if (P_dbm != None):
-            response = self._send_command(command + f" {P_dbm:.3f}")
-        else:
-            response = self._send_command(command + "?")
-        return response
+    @property
+    def status(self):
+        params_dic = {}
+        # params_dic['name'] = self.name
+        # params_dic['start_frequency'] = self._start_frequency
+        # params_dic['stop_frequency'] = self._stop_frequency
+        params_dic['if_frequency_hz'] = self._if_frequency
+        params_dic['power_dbm'] = self._power
+        params_dic['points'] = self._points
+        params_dic['average'] = self._average
+        params_dic['mode'] = self._mode
+        params_dic['reference'] = self._reference
+        return params_dic
 
-    def center_frequency(self, freq_hz = None):
+    # settings
+    def center_frequency(self, freq_hz=None):
         command = "SENS:FREQ:CENT"
         if (freq_hz != None):
-            response = self._send_command(command + f" {freq_hz:.3f} Hz")
+            self._send_command(command + f" {freq_hz:.3f} Hz")
+            _start_frequency = self.start_frequency(force_read=True)
+            _stop_frequency = self.stop_frequency(force_read=True)
         else:
             response = self._send_command(command + "?")
-        return response
-        
-    def span(self, freq_hz = None):
+            return response
+
+    def span(self, freq_hz=None):
         command = "SENS:FREQ:SPAN"
         if (freq_hz != None):
-            response = self._send_command(command + f" {freq_hz:.3f} Hz")
+            self._send_command(command + f" {freq_hz:.3f} Hz")
+            _start_frequency = self.start_frequency(force_read=True)
+            _stop_frequency = self.stop_frequency(force_read=True)
         else:
             response = self._send_command(command + "?")
-        return response
-        
-    def if_frequency(self, freq_hz = None):
-        command = "SENS:BWID"
-        if (freq_hz != None):
-            response = self._send_command(command + f" {freq_hz:.3f} Hz")
-        else:
-            response = self._send_command(command + "?")
-        return response
+            return response
 
-    def start_frequency(self, freq_hz = None):
+    def start_frequency(self, freq_hz=None, force_read=False):
         command = "SENS:FREQ:STARt"
         if (freq_hz != None):
-            response = self._send_command(command + f" {freq_hz:.3f} Hz")
+            self._send_command(command + f" {freq_hz:.3f} Hz")
+            self._start_frequency = freq_hz
         else:
-            response = self._send_command(command + "?")
-        return response
-        
-    def stop_frequency(self, freq_hz = None):
+            if force_read or (self._start_frequency == None):
+                response = self._send_command(command + "?")
+                self._start_frequency = float(response)
+            return self._start_frequency
+
+    def stop_frequency(self, freq_hz=None, force_read=False):
         command = "SENS:FREQ:STOP"
         if (freq_hz != None):
-            response = self._send_command(command + f" {freq_hz:.3f} Hz")
+            self._send_command(command + f" {freq_hz:.3f} Hz")
+            self._stop_frequency = freq_hz
         else:
-            response = self._send_command(command + "?")
-        return response
+            if force_read or (self._stop_frequency == None):
+                response = self._send_command(command + "?")
+                self._stop_frequency = float(response)
+            return self._stop_frequency
+        
+    def if_frequency(self, freq_hz = None, force_read=False):
+        command = "SENS:BWID"
+        if (freq_hz != None):
+            self._send_command(command + f" {freq_hz:.3f} Hz")
+            self._if_frequency = freq_hz
+        else:
+            if force_read or (self._if_frequency == None):
+                response = self._send_command(command + "?")
+                self._if_frequency = float(response)
+            return self._if_frequency
 
-    def points(self, n_p=None):
+    def power(self, power_dbm=None, force_read=False):
+        command = "SOUR:POW"
+        if (power_dbm != None):
+            self._send_command(command + f" {power_dbm:.3f}")
+            self._power = power_dbm
+        else:
+            if force_read or (self._power == None):
+                response = self._send_command(command + "?")
+                self._power = float(response)
+            return self._power
+
+    def points(self, n_p=None, force_read=False):
         command = "SENS:SWE:POIN"
         if (n_p != None):
-            response = self._send_command(command + f" {n_p:1d}")
+            self._send_command(command + f" {n_p:1d}")
+            self._points = n_p
         else:
-            response = self._send_command(command + "?")
-        return response
+            if force_read or (self._points == None):
+                response = self._send_command(command + "?")
+                self._points = int(response)
+            return self._points
 
-    def average(self, n_ave = None, mode='sweep'):
+    def average(self, n_ave = None, mode='sweep', force_read=False):
         if n_ave is not None:
             self._send_command("SENS:AVER:CLE")
 
-        response = []
-
         command = "SENS:AVER:COUN"
         if (n_ave != None):
-            response.append(self._send_command(command + f" {n_ave:1d}"))
+            self._send_command(command + f" {n_ave:1d}")
+            self._average = n_ave
         else:
-            response.append(self._send_command(command + "?"))
+            if force_read or (self._average == None):
+                response = self._send_command(command + "?")
+                self._average = int(response)
 
         if mode == 'point':
             command = "AVER:MODE POINT"
@@ -97,26 +140,32 @@ class N9928A(instr):
             command = "AVER:MODE SWEEP"
 
         if (n_ave != None):
-            response.append(self._send_command(command))
+            self._send_command(command)
+            self._mode = mode
         else:
-            response.append(self._send_command("AVER:MODE?"))
+            if force_read or (self._average == None):
+                response = self._send_command("AVER:MODE?")
+                self._mode = response
 
-        return response
+        return [self._average, self._mode]
 
-    def reference(self, ref_source = None):                
+    def reference(self, ref_source = None, force_read=False):
         command = "SENS:ROSC:SOUR"
         if (ref_source != None):
-            response = self._send_command(command + f" {ref_source}")
+            self._send_command(command + f" {ref_source}")
+            self._reference = ref_source
         else:
-            response = self._send_command(command + "?")
-        return response
+            if force_read or (self._reference == None):
+                response = self._send_command(command + "?")
+                self._reference = response
+            return self._reference
         
     def get_trace(self):
         self._send_command('INIT:CONT 0')
         self._send_command("SENS:AVER:CLE")
 
         if self._send_command("AVER:MODE?") == 'SWE':
-            for _ite in range(int(self.average()[0])):
+            for _ite in range(int(self._average)):
                 self._send_command('INIT:IMM')
                 self._send_command('*WAI')
                 self._send_command('*OPC?')
@@ -138,7 +187,7 @@ class N9928A(instr):
 
         res_data = xr.DataArray(s_data,
                                 coords = [frequencies],
-                                dims = ["frequency"],
+                                dims = ["frequency_hz"],
                                 name = "S21")
 
         return res_data

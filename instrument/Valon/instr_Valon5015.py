@@ -13,36 +13,50 @@ class Valon5015(instr):
 
         self._frequency = None
         self._power = None
+        self._output = None
+        self._enable = None
+        self._reference = None
 
         self.output(False)
         self._send_command("?")
 
+    @property
+    def status(self):
+        params_dic = {}
+        # params_dic['name'] = self.name
+        params_dic['frequency'] = self._frequency
+        params_dic['power'] = self._power
+        params_dic['output'] = self._output
+        params_dic['enable'] = self._enable
+        params_dic['reference'] = self._reference
+        return params_dic
+
     # settings 
-    def frequency(self, freq_hz = None):
+    def frequency(self, freq_hz = None, force_read = False):
         command = "FREQ"
         if (freq_hz != None):
-            response = self._send_command(command + f" {int(np.round(freq_hz)):1d}")
+            self._send_command(command + f" {int(np.round(freq_hz)):1d}")
             self._frequency = freq_hz
         else:
-            if self._frequency == None:
+            if force_read or (self._frequency == None):
                 response = self._send_command(command + "?")
                 response = re.search(r"F\s([\d\.]+)\s", response).group(1)
                 self._frequency = float(response) * 1e6
             return self._frequency
 
-    def power(self, power_dbm = None):
+    def power(self, power_dbm = None, force_read = False):
         command = "PWR"
         if (power_dbm != None):
             self._send_command(command + f" {power_dbm:.3f}")
             self._power = power_dbm
         else:
-            if self._power == None:
+            if force_read or (self._power == None):
                 response = self._send_command(command + "?")
                 response = re.search(r"PWR\s(-?[\d\.]+);", response).group(1)
                 self._power = float(response)
             return self._power
 
-    def reference(self, ref_source = None):
+    def reference(self, ref_source = None, force_read = False):
         if ref_source == 'EXT':
             _num = 1
         else:
@@ -50,12 +64,15 @@ class Valon5015(instr):
                 
         command = "ReferenceSource"    
         if (ref_source != None):
-            response = self._send_command(command + f" {_num:0d}")
+            self._send_command(command + f" {_num:0d}")
+            self._reference = 'EXT' if _num == 0 else 'INT'
         else:
-            response = self._send_command(command + "?")
-        return response
+            if force_read or (self._reference == None):
+                response = self._send_command(command + "?")
+                self._reference = response
+            return self._reference
 
-    def output(self, flag_output = None):
+    def output(self, flag_output = None, force_read = False):
         if (flag_output == 1) or (flag_output == True):
             str_output = "ON"
             self.enable(True)
@@ -64,12 +81,15 @@ class Valon5015(instr):
         
         command = "OEN"    
         if (flag_output != None):
-            response = self._send_command(command + f" {str_output}")
+            self._send_command(command + f" {str_output}")
+            self._output = str_output
         else:
-            response = self._send_command(command + "?")
-        return response
+            if force_read or (self._output == None):
+                response = self._send_command(command + "?")
+                self._output = float(response)
+            return self._output
 
-    def enable(self, flag_enable = None):
+    def enable(self, flag_enable = None, force_read = False):
         if (flag_enable == 1) or (flag_enable == True):
             str_enable = "ON"
         else:
@@ -77,11 +97,11 @@ class Valon5015(instr):
         
         command = "PDN"    
         if (flag_enable != None):
-            response = self._send_command(command + f" {str_enable}")
+            self._send_command(command + f" {str_enable}")
+            self._enable = str_enable
         else:
-            response = self._send_command(command + "?")
-        return response
-    
-    # functions        
-    def get_status(self):
-        return self._send_command("Status")
+            if force_read or (self._enable == None):
+                response = self._send_command(command + "?")
+                self._enable = float(response)
+            return self._enable
+

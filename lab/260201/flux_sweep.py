@@ -87,7 +87,7 @@ plt.show()
 
 # iq_mat = iq_mat.transpose(..., "frequency")
 iq_mat2.to_zarr('test_1.zarr', mode='w')
-
+0
 drive.lo1.output(0)
 drive.lo2[0].output(0)
 sim.slow_set(0, dv=0.05)
