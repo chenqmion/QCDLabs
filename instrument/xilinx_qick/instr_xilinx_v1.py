@@ -58,6 +58,14 @@ class XilinxProg:
         self._config.update(kwargs)
 
     # data
+    def test(self, load_pulses=True, progress=True):
+        if (not hasattr(self, '_prog_cache')) or (self.config != self._prog_cache.cfg):
+            if self.mode == 'AveragerProgram':
+                from class_AveProg import Prog
+                self._prog_cache = Prog(soccfg=self.soccfg, cfg=self.config)
+        self.soc.reset_gens()  # clear any DC or periodic values on generators
+        return self._prog_cache.test(self.soc, load_pulses=load_pulses, progress=progress)
+
     def acquire(self, load_pulses=True, progress=True):
         if (not hasattr(self, '_prog_cache')) or (self.config != self._prog_cache.cfg):
             if self.mode == 'AveragerProgram':

@@ -46,53 +46,53 @@ class N9928A(instr):
         return params_dic
 
     # settings
-    def center_frequency(self, freq_hz=None):
+    def center_frequency(self, center_frequency_hz=None):
         command = "SENS:FREQ:CENT"
-        if (freq_hz != None):
-            self._send_command(command + f" {freq_hz:.3f} Hz")
+        if (center_frequency_hz != None):
+            self._send_command(command + f" {center_frequency_hz:.3f} Hz")
             _start_frequency = self.start_frequency(force_read=True)
             _stop_frequency = self.stop_frequency(force_read=True)
         else:
             response = self._send_command(command + "?")
             return response
 
-    def span(self, freq_hz=None):
+    def span(self, frequency_hz=None):
         command = "SENS:FREQ:SPAN"
-        if (freq_hz != None):
-            self._send_command(command + f" {freq_hz:.3f} Hz")
+        if (frequency_hz != None):
+            self._send_command(command + f" {frequency_hz:.3f} Hz")
             _start_frequency = self.start_frequency(force_read=True)
             _stop_frequency = self.stop_frequency(force_read=True)
         else:
             response = self._send_command(command + "?")
             return response
 
-    def start_frequency(self, freq_hz=None, force_read=False):
+    def start_frequency(self, start_frequency_hz=None, force_read=False):
         command = "SENS:FREQ:STARt"
-        if (freq_hz != None):
-            self._send_command(command + f" {freq_hz:.3f} Hz")
-            self._start_frequency = freq_hz
+        if (start_frequency_hz != None):
+            self._send_command(command + f" {start_frequency_hz:.3f} Hz")
+            self._start_frequency = start_frequency_hz
         else:
             if force_read or (self._start_frequency == None):
                 response = self._send_command(command + "?")
                 self._start_frequency = float(response)
             return self._start_frequency
 
-    def stop_frequency(self, freq_hz=None, force_read=False):
+    def stop_frequency(self, stop_frequency_hz=None, force_read=False):
         command = "SENS:FREQ:STOP"
-        if (freq_hz != None):
-            self._send_command(command + f" {freq_hz:.3f} Hz")
-            self._stop_frequency = freq_hz
+        if (stop_frequency_hz != None):
+            self._send_command(command + f" {stop_frequency_hz:.3f} Hz")
+            self._stop_frequency = stop_frequency_hz
         else:
             if force_read or (self._stop_frequency == None):
                 response = self._send_command(command + "?")
                 self._stop_frequency = float(response)
             return self._stop_frequency
         
-    def if_frequency(self, freq_hz = None, force_read=False):
+    def if_frequency(self, if_frequency_hz = None, force_read=False):
         command = "SENS:BWID"
-        if (freq_hz != None):
-            self._send_command(command + f" {freq_hz:.3f} Hz")
-            self._if_frequency = freq_hz
+        if (if_frequency_hz != None):
+            self._send_command(command + f" {if_frequency_hz:.3f} Hz")
+            self._if_frequency = if_frequency_hz
         else:
             if force_read or (self._if_frequency == None):
                 response = self._send_command(command + "?")

@@ -16,6 +16,10 @@ class Prog(AveragerProgram):
                                          waveform=waveform.name,
                                          phrst=0,
                                          mode="oneshot")
+                # self.set_pulse_registers(ch=dr.dr_ch,
+                #                          waveform=waveform.name,
+                #                          phrst=0,
+                #                          mode="periodic")
                 self.pulse(ch=dr.dr_ch)
 
         # modified sync_all with only DAC clocks, no ADC clocks
@@ -88,6 +92,15 @@ class Prog(AveragerProgram):
         self.sync_all(cfg[self.ro_names[0]].sleep_cyl) # need fix!!!
 
     # %% data
+    def test(self, soc, load_pulses=True, progress=True):
+        cfg = self.cfg
+
+        # soc.reset_gens()
+
+        self.config_all(soc)
+        soc.tproc.start()
+
+
     def acquire(self, soc, load_pulses=True, progress=True):
         cfg = self.cfg
         i_data, q_data = super().acquire(soc, load_pulses=load_pulses, progress=progress)

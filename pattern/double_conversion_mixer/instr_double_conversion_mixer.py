@@ -34,6 +34,21 @@ class DuoMixer:
         self.lo1 = lo1
         self.lo2 = lo2
 
+        self._set_frequency = None
+        # self._lo1_frequency = None
+        # self._lo2_frequency = None
+        self._if_frequency = None
+
+    @property
+    def status(self):
+        params_dic = {}
+        # params_dic['name'] = self.name
+        params_dic['set_frequency_hz'] = self._set_frequency
+        # params_dic['lo1_frequency'] = self._lo1_frequency
+        # params_dic['lo2_frequency'] = self._lo2_frequency
+        params_dic['if_frequency_hz'] = self._if_frequency
+        return params_dic
+
     def set_lo1(self, *, frequency=None, power=None):
         if not(frequency==None):
             self.lo1.frequency(frequency)
@@ -46,13 +61,21 @@ class DuoMixer:
         if not (power == None):
             self.lo2[idx].power(power)
 
-    def set_frequency(self, *, idx=0, frequency=None, if_frequency=None):
-        if not (frequency == None):
-            print(self.lo1.frequency())
-            freq2 = self.lo1.frequency() + np.floor(frequency) + if_frequency
+    def set_frequency(self, *, idx=0, set_frequency_hz=None, if_frequency_hz=None):
+        if not (set_frequency_hz == None):
+            if not (if_frequency_hz == None):
+                self._if_frequency = if_frequency_hz
+
+            freq2 = self.lo1.frequency() + np.floor(set_frequency_hz) + self._if_frequency
             self.lo2[idx].frequency(freq2)
-            self.if_frequency = if_frequency
-            self.frequency = freq2
+            # self.frequency = freq2
+
+            self._set_frequency = set_frequency_hz
+
+            # print(self._set_frequency)
+            # print(self._if_frequency)
+
+        return self._set_frequency
 #
 # lo1_address = '10.0.100.27'
 # port = 23

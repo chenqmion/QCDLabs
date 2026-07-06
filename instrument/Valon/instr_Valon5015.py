@@ -9,7 +9,7 @@ from class_instr import instr
 
 class Valon5015(instr):
     def __init__(self, ip_address, port=23, buffer_size=1024, time_out=30, line_ending='\r'):
-        super().__init__("Valon 5015", ip_address, port=port, buffer_size=buffer_size, time_out=time_out, line_ending=line_ending)
+        super().__init__("Valon_5015", ip_address, port=port, buffer_size=buffer_size, time_out=time_out, line_ending=line_ending)
 
         self._frequency = None
         self._power = None
@@ -24,19 +24,19 @@ class Valon5015(instr):
     def status(self):
         params_dic = {}
         # params_dic['name'] = self.name
-        params_dic['frequency'] = self._frequency
-        params_dic['power'] = self._power
+        params_dic['frequency_hz'] = self._frequency
+        params_dic['power_dbm'] = self._power
         params_dic['output'] = self._output
         params_dic['enable'] = self._enable
         params_dic['reference'] = self._reference
         return params_dic
 
     # settings 
-    def frequency(self, freq_hz = None, force_read = False):
+    def frequency(self, frequency_hz = None, force_read = False):
         command = "FREQ"
-        if (freq_hz != None):
-            self._send_command(command + f" {int(np.round(freq_hz)):1d}")
-            self._frequency = freq_hz
+        if (frequency_hz != None):
+            self._send_command(command + f" {int(np.round(frequency_hz)):1d}")
+            self._frequency = frequency_hz
         else:
             if force_read or (self._frequency == None):
                 response = self._send_command(command + "?")
