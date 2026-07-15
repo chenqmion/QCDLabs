@@ -20,13 +20,17 @@ class drx:
     dr_ch: int
     frequency: float
     gain: float
+    nqz: int= None
 
     ro_ch: int = None
-
     phase: float = 0.0
-    delay: float = 0.0
-    sleep: float = 0.0
-    length_cyl: int = 0
+    # delay: float = 0.0
+    # sleep: float = 0.0
+    # length_cyl: int = 0
+
+    def __post_init__(self):
+        if self.nqz is None:
+            self.nqz = 1 if self.frequency <= 9830.4 / 2 else 2
 
     @property
     def maxv(self):
@@ -40,13 +44,13 @@ class drx:
     def phase_cyl(self):
         return self.soc.deg2reg(self.phase, gen_ch=self.dr_ch)
 
-    @property
-    def delay_cyl(self):
-        return np.round(self.soc.us2cycles(self.delay, gen_ch=self.dr_ch)).astype(int)
-
-    @property
-    def sleep_cyl(self):
-        return np.round(self.soc.us2cycles(self.sleep, gen_ch=self.dr_ch)).astype(int)
+    # @property
+    # def delay_cyl(self):
+    #     return np.round(self.soc.us2cycles(self.delay, gen_ch=self.dr_ch)).astype(int)
+    #
+    # @property
+    # def sleep_cyl(self):
+    #     return np.round(self.soc.us2cycles(self.sleep, gen_ch=self.dr_ch)).astype(int)
 
     @property
     def frequency_cyl(self):

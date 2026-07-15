@@ -35,11 +35,51 @@ class XilinxProg:
         soc, soccfg = make_proxy(ns_host=ip_address, ns_port=port, proxy_name=name)
         print(soccfg)
 
+        self.name = name
+
         self.soc = soc
         self.soccfg = soccfg
         self.ip_address = ip_address
         self.port = port
         self.mode = mode
+
+    # def register_sweep(self, fun):
+    #     self._sweep_fun = fun
+    #
+    # def sweep(self, **kwargs):
+    #     return self._sweep_fun(self, **kwargs)
+
+    def register_sweep(self, fun, **defaults):
+        if not hasattr(self, "_sweep_fun"):
+            self._sweep_fun = {}
+
+        for name, value in defaults.items():
+            self._sweep_fun[name] = fun
+            setattr(self, name, value)
+
+    def sweep(self, **kwargs):
+        fun_dict = {}
+
+        for name, value in kwargs.items():
+            fun = self._sweep_fun[name]
+            fun_dict.setdefault(fun, {})
+            fun_dict[fun][name] = value
+
+        for fun, args in fun_dict.items():
+            fun(self, **args)
+
+    @property
+    def status(self):
+        params_dic = {}
+        # params_dic['name'] = self.name
+        # params_dic['start_frequency'] = self._start_frequency
+        # params_dic['stop_frequency'] = self._stop_frequency
+        # params_dic['if_frequency'] = self._if_frequency
+        # params_dic['video_frequency'] = self._video_frequency
+        # params_dic['points'] = self._points
+        # params_dic['average'] = self._average
+        # params_dic['reference'] = self._reference
+        return params_dic
 
     # configuration
     @property
@@ -49,16 +89,20 @@ class XilinxProg:
                 "expts": self.expts,
                 "ddr4": self.ddr4,
                 "mr": self.mr}
-        _cfg |= self._config
+
+        if (hasattr(self, '_config')):
+            _cfg |= self._config
+
         return _cfg
 
     def add(self, **kwargs):
         if (not hasattr(self, '_config')):
             self._config = {}
+
         self._config.update(kwargs)
 
     # data
-    def test(self, load_pulses=True, progress=True):
+    def test(self, load_pulses=True, progress=False):
         if (not hasattr(self, '_prog_cache')) or (self.config != self._prog_cache.cfg):
             if self.mode == 'AveragerProgram':
                 from class_AveProg import Prog
@@ -66,7 +110,7 @@ class XilinxProg:
         self.soc.reset_gens()  # clear any DC or periodic values on generators
         return self._prog_cache.test(self.soc, load_pulses=load_pulses, progress=progress)
 
-    def acquire(self, load_pulses=True, progress=True):
+    def acquire(self, load_pulses=True, progress=False):
         if (not hasattr(self, '_prog_cache')) or (self.config != self._prog_cache.cfg):
             if self.mode == 'AveragerProgram':
                 from class_AveProg import Prog
@@ -77,7 +121,7 @@ class XilinxProg:
         self.soc.reset_gens()  # clear any DC or periodic values on generators
         return self._prog_cache.acquire(self.soc, load_pulses=load_pulses, progress=progress)
 
-    def acquire_decimated(self, load_pulses=True, progress=True):
+    def acquire_decimated(self, load_pulses=True, progress=False):
         if self.mode == 'AveragerProgram':
             from class_AveProg import Prog
             self._prog_cache = Prog(soccfg=self.soccfg, cfg=self.config)

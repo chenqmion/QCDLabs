@@ -11,9 +11,9 @@ class rox:
     ro_ch: int
     frequency: float
 
-    dr_ch: int = None
-    delay: float = 0.1
-    sleep: float = 1.0
+    dr_ch: int = 0
+    delay: float = 0.0
+    sleep: float = 0.0
     length: float = 0
 
     @property
@@ -26,7 +26,13 @@ class rox:
 
     @property
     def length_cyl(self):
+        if self.length >= 1.85:
+            self.length = 1.849
         return np.round(self.soc.us2cycles(self.length, ro_ch=self.ro_ch)).astype(int)
+
+    @property
+    def frequency_cyl(self):
+        return self.soc.freq2reg(self.frequency, gen_ch=self.dr_ch, ro_ch=self.ro_ch)
 
     def set(self, ro_ch=None, frequency=None, dr_ch=None, delay=None, sleep=None, length=None):
         if ro_ch != None: self.ro_ch = ro_ch

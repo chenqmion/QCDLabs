@@ -65,7 +65,8 @@ class Valon5015(instr):
         command = "ReferenceSource"    
         if (ref_source != None):
             self._send_command(command + f" {_num:0d}")
-            self._reference = 'EXT' if _num == 0 else 'INT'
+            self._reference = 'EXT' if _num == 1 else 'INT'
+
         else:
             if force_read or (self._reference == None):
                 response = self._send_command(command + "?")

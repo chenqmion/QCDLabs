@@ -1,5 +1,6 @@
 import sys
 import os
+import time
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -49,6 +50,11 @@ class DuoMixer:
         params_dic['if_frequency_hz'] = self._if_frequency
         return params_dic
 
+    def set_reference(self, ref_source=None):
+        self.lo1.reference(ref_source = ref_source, force_read = False)
+        for _lo2 in self.lo2:
+            _lo2.reference(ref_source = ref_source, force_read=False)
+
     def set_lo1(self, *, frequency=None, power=None):
         if not(frequency==None):
             self.lo1.frequency(frequency)
@@ -72,8 +78,7 @@ class DuoMixer:
 
             self._set_frequency = set_frequency_hz
 
-            # print(self._set_frequency)
-            # print(self._if_frequency)
+            time.sleep(0.01)
 
         return self._set_frequency
 #

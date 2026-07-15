@@ -35,7 +35,7 @@ class NDProg(NDAveragerProgram):
         for val_key, val_x in cfg.items():
             if val_key[:3] == 'dr_':
                 self.dr_names.append(val_key)
-                self.declare_gen(ch=val_x.dr_ch, nqz=1)
+                self.declare_gen(ch=val_x.dr_ch, nqz=val_x.nqz)
                 self.default_pulse_registers(ch=val_x.dr_ch,
                                              freq=val_x.frequency_cyl,
                                              gain=val_x.maxv,
@@ -85,12 +85,12 @@ class NDProg(NDAveragerProgram):
         cfg = self.cfg
         self.trigger(adcs=self.ro_chns,
                      pins=[0],
-                     adc_trig_offset=cfg[self.ro_names[0]].delay_cyl)
+                     adc_trig_offset=cfg[self.ro_names[0]].rox.delay_cyl)  # wait # cycles after trigger
 
         self.initialize_phases()
         self.play_seq()
         self.wait_all()
-        self.sync_all(cfg[self.ro_names[0]].sleep_cyl)  # need fix!!!
+        self.sync_all(cfg[self.ro_names[0]].rox.sleep_cyl)
 
     # %% data
     def acquire(self, soc, load_pulses=True, progress=True):
@@ -114,7 +114,6 @@ class NDProg(NDAveragerProgram):
         cfg = self.cfg
         iq_list = super().acquire_decimated(soc, progress=progress)
         iq_list = np.transpose(iq_list, (3,0,1,2))
-        print('hahaha', np.shape(iq_list[0] + 1j * iq_list[1]))
         res_data = xr.DataArray(iq_list[0] + 1j * iq_list[1],
                                 coords=[self.ro_chns,
                                         np.arange(0, np.shape(iq_list)[-2], 1),
